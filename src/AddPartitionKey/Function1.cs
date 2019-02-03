@@ -17,13 +17,10 @@ namespace AddPartitionKey
         {
             log.Info($"C# Timer trigger function executed at: {DateTime.Now}");
 
-            var cloudStorage = CloudStorageAccount.Parse(GetEnvironmentVariable("AzureWebJobsStorage"));
+            var cloudStorage = CloudStorageAccount.Parse(Helper.GetEnvironmentVariable("AzureWebJobsStorage"));
             var cloudTableClient = cloudStorage.CreateCloudTableClient();
             var timeClient = cloudTableClient.GetTableReference("time");
             var dummyClient = cloudTableClient.GetTableReference("dummy");
-
-            await timeClient.CreateIfNotExistsAsync();
-            await dummyClient.CreateIfNotExistsAsync();
 
             Stopwatch watch = new Stopwatch();
             watch.Start();
@@ -41,31 +38,6 @@ namespace AddPartitionKey
             watch.Stop();
 
             await timeClient.ExecuteAsync(TableOperation.Insert(new TimeTaken(pk) { TimeInMs = watch.ElapsedMilliseconds }));
-        }
-
-        public class Entity : TableEntity
-        {
-            public Entity(string partitionKey)
-            {
-                PartitionKey = partitionKey;
-                RowKey = Guid.NewGuid().ToString();
-            }
-        }
-
-        public class TimeTaken : TableEntity
-        {
-            public long TimeInMs { get; set; }
-
-            public TimeTaken(string partitionKey)
-            {
-                PartitionKey = partitionKey;
-                RowKey = string.Empty;
-            }
-        }
-
-        public static string GetEnvironmentVariable(string name)
-        {
-            return System.Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
         }
     }
 }
